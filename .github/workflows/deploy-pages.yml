@@ -31,7 +31,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_BASE_PATH: /spiritual-growth-journal/
+          VITE_BASE_PATH: /app-spiritual-growth-journal/
         run: npm run build
 
       - name: Setup Pages
