@@ -1,4 +1,5 @@
 import type { AppData } from '../types';
+import { normalizeAppData } from './db';
 
 export interface BackupEnvelope {
   app: 'spiritual-growth-journal';
@@ -43,5 +44,5 @@ export function parseBackup(text: string): AppData {
   ) {
     throw new Error('El archivo no es un respaldo válido de esta aplicación.');
   }
-  return parsed.data;
+  return normalizeAppData(parsed.data);
 }

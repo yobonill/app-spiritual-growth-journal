@@ -1,15 +1,16 @@
 import { formatBibleRange, getNextReference } from '../data/bibleBooks';
 import { formatDateTime, formatDuration } from '../lib/format';
-import type { AppData } from '../types';
+import type { AppData, ManualPracticeType } from '../types';
 
 interface HomeViewProps {
   data: AppData;
   onStartPrayer: () => void;
   onStartBible: () => void;
+  onAddPractice: (type: ManualPracticeType) => void;
   onResumeActive: () => void;
 }
 
-export default function HomeView({ data, onStartPrayer, onStartBible, onResumeActive }: HomeViewProps) {
+export default function HomeView({ data, onStartPrayer, onStartBible, onAddPractice, onResumeActive }: HomeViewProps) {
   const latestBible = [...data.bibleReadingSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
   const latestPrayer = [...data.prayerSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
   const nextReference = latestBible ? getNextReference(latestBible.end) : null;
@@ -46,6 +47,17 @@ export default function HomeView({ data, onStartPrayer, onStartBible, onResumeAc
             <strong>Iniciar sesión de lectura</strong>
             <small>{nextReference ? `Sugerencia: continuar en ${nextReference.bookName} ${nextReference.chapter}:${nextReference.verse}` : 'Registra dónde comienzas y dónde terminas'}</small>
           </span>
+        </button>
+      </section>
+
+      <section className="manual-actions" aria-label="Registros manuales">
+        <button className="manual-action fasting" type="button" onClick={() => onAddPractice('fasting')}>
+          <span>⏳</span>
+          <div><strong>Registrar ayuno</strong><small>Indica desde cuándo, hasta cuándo y el propósito.</small></div>
+        </button>
+        <button className="manual-action cilice" type="button" onClick={() => onAddPractice('cilice')}>
+          <span>✝️</span>
+          <div><strong>Registrar cilicio</strong><small>Guarda el período y la razón, sin iniciar un contador.</small></div>
         </button>
       </section>
 

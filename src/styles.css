@@ -175,7 +175,7 @@ label { display: grid; gap: 7px; color: #454b45; font-size: .92rem; font-weight:
 .loading-mark { font-size: 2rem; }
 .loading-state p { margin: 0; }
 @media (max-width: 520px) {
-  .snapshot-grid, .metrics-grid { grid-template-columns: 1fr; }
+  .snapshot-grid, .metrics-grid:not(.compact-metrics) { grid-template-columns: 1fr; }
   .prayer-targets { grid-template-columns: 1fr 1fr; }
   .session-heading.compact { grid-template-columns: 1fr; }
   .text-button { justify-self: start; padding-left: 0; }
@@ -195,4 +195,92 @@ label { display: grid; gap: 7px; color: #454b45; font-size: .92rem; font-weight:
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+/* Manual spiritual practice records */
+.manual-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.manual-action { border: 1px solid var(--line); background: rgba(255,253,248,.92); border-radius: 18px; padding: 16px; min-height: 102px; display: flex; align-items: center; gap: 12px; text-align: left; color: #303830; }
+.manual-action > span { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 13px; display: grid; place-items: center; background: var(--paper-2); font-size: 1.35rem; }
+.manual-action div { min-width: 0; display: grid; gap: 5px; }
+.manual-action strong { color: #354035; }
+.manual-action small { color: var(--muted); line-height: 1.35; }
+.manual-action:hover { border-color: #b9c2b4; background: #fff; }
+.manual-practice-date-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.manual-duration-preview { margin: -7px 0 0; color: var(--green-dark); font-size: .9rem; }
+.manual-history-reason { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: #f7f4ec; }
+.manual-history-reason span { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+.manual-history-reason p { margin: 0; line-height: 1.45; color: #4d534d; }
+
+/* In-session prayer additions */
+.quick-prayer-section { display: grid; gap: 10px; }
+.quick-prayer-form { border: 1px solid var(--line); background: var(--paper); border-radius: 16px; padding: 14px; display: grid; gap: 12px; }
+.quick-prayer-check { font-weight: 600; color: #4c534c; }
+.secondary-button.full { width: 100%; }
+
+/* History filters */
+.history-filters { display: flex; gap: 7px; overflow-x: auto; padding: 1px 0 3px; scrollbar-width: thin; }
+.history-filter { flex: 0 0 auto; min-height: 38px; border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; background: #fff; color: #5e655e; font-weight: 700; font-size: .82rem; }
+.history-filter.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+
+/* Statistics */
+.period-selector { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+.period-selector button { min-height: 42px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: #5e655e; font-weight: 750; }
+.period-selector button.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+.daily-average-panel { border: 1px solid #bfcab9; background: linear-gradient(145deg,#f0f5ed,#e7efe3); border-radius: 22px; padding: 18px; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 18px; }
+.daily-average-main { display: grid; align-content: center; gap: 7px; }
+.daily-average-main > span { color: #566653; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+.daily-average-main > strong { color: #2f442e; font-family: Georgia,serif; font-size: clamp(2rem,7vw,3rem); line-height: 1; }
+.daily-average-main > small { color: #687565; line-height: 1.4; }
+.daily-average-breakdown { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.daily-average-breakdown > div { border-left: 1px solid rgba(70,94,65,.16); padding-left: 10px; display: grid; align-content: center; gap: 5px; min-width: 0; }
+.daily-average-breakdown span { color: #657362; font-size: .75rem; font-weight: 750; }
+.daily-average-breakdown strong { color: #344b32; font-size: 1rem; line-height: 1.25; }
+.daily-average-breakdown small { color: #788375; font-size: .72rem; }
+.compact-metrics.four-columns { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.compact-metrics .metric-card { padding: 13px; gap: 5px; }
+.compact-metrics .metric-card strong { font-size: 1.12rem; line-height: 1.25; }
+.compact-metrics .metric-card span { font-size: .7rem; }
+.activity-chart-panel { overflow: hidden; }
+.activity-legend { display: flex; gap: 15px; flex-wrap: wrap; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.activity-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.activity-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.prayer-dot, .activity-prayer-segment { background: #557451; }
+.bible-dot, .activity-bible-segment { background: #b08a4e; }
+.activity-chart-scroll { overflow-x: auto; padding-bottom: 5px; }
+.activity-chart { height: 188px; display: flex; align-items: stretch; gap: 5px; padding: 4px 2px 0; }
+.activity-day { flex: 1 0 23px; min-width: 23px; display: grid; grid-template-rows: 150px 28px; gap: 5px; justify-items: center; }
+.activity-bar-track { width: 100%; max-width: 19px; height: 150px; border-radius: 6px 6px 3px 3px; background: #eeeae0; display: flex; align-items: flex-end; overflow: hidden; }
+.activity-bar-fill { width: 100%; min-height: 0; display: flex; flex-direction: column-reverse; border-radius: 5px 5px 2px 2px; overflow: hidden; }
+.activity-bar-fill span { display: block; width: 100%; min-height: 1px; }
+.activity-day small { min-width: 40px; text-align: center; color: var(--muted); font-size: .63rem; white-space: nowrap; transform: rotate(-32deg); transform-origin: top center; }
+.streak-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.streak-grid > div { display: grid; gap: 4px; padding: 11px; background: #f8f6f0; border-radius: 12px; }
+.streak-grid span { color: var(--muted); font-size: .74rem; }
+.streak-grid strong { color: var(--green-dark); font-size: 1.05rem; }
+.manual-practice-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.manual-practice-metrics > div { display: grid; gap: 4px; padding: 13px; border: 1px solid #e2dccf; border-radius: 13px; background: #fff; }
+.manual-practice-metrics span { color: var(--muted); font-size: .78rem; font-weight: 750; }
+.manual-practice-metrics strong { color: var(--green-dark); font-size: 1.3rem; }
+.manual-practice-metrics small { color: var(--muted); line-height: 1.35; }
+
+@media (max-width: 620px) {
+  .daily-average-panel { grid-template-columns: 1fr; }
+  .daily-average-breakdown > div:first-child { border-left: 0; padding-left: 0; }
+  .streak-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 520px) {
+  .manual-actions { grid-template-columns: 1fr; }
+  .manual-practice-date-grid { grid-template-columns: 1fr; }
+  .metrics-grid.compact-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .daily-average-breakdown { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .period-selector { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+
+@media (max-width: 380px) {
+  .daily-average-breakdown { grid-template-columns: 1fr; }
+  .daily-average-breakdown > div { border-left: 0; border-top: 1px solid rgba(70,94,65,.16); padding: 8px 0 0; }
+  .daily-average-breakdown > div:first-child { border-top: 0; padding-top: 0; }
+  .period-selector { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .manual-practice-metrics { grid-template-columns: 1fr; }
 }

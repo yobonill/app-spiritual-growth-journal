@@ -32,7 +32,7 @@ export interface PrayerRequest {
   updatedAt: string;
 }
 
-export type PrayerTargetType = 'topic' | 'request';
+export type PrayerTargetType = 'topic' | 'request' | 'session';
 
 export interface PrayerSegment {
   id: string;
@@ -71,6 +71,24 @@ export interface BibleReadingSession {
   comment?: string;
 }
 
+export type ManualPracticeType = 'fasting' | 'cilice';
+
+export interface ManualPracticeRecord {
+  id: string;
+  type: ManualPracticeType;
+  startedAt: string;
+  endedAt: string;
+  durationSeconds: number;
+  reason: string;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface SessionPrayerTarget {
+  id: string;
+  label: string;
+}
+
 export interface ActivePrayerSegment {
   targetType: PrayerTargetType;
   targetId: string;
@@ -85,6 +103,7 @@ export interface ActivePrayerSession {
   startedAt: string;
   segments: PrayerSegment[];
   completedTargetKeys: string[];
+  sessionTargets: SessionPrayerTarget[];
   activeSegment?: ActivePrayerSegment;
 }
 
@@ -104,6 +123,7 @@ export interface AppData {
   prayerRequests: PrayerRequest[];
   prayerSessions: PrayerSession[];
   bibleReadingSessions: BibleReadingSession[];
+  practiceRecords: ManualPracticeRecord[];
   activeSession?: ActiveSession;
 }
 

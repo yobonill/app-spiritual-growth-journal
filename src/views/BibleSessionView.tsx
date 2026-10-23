@@ -1,21 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BibleReferencePicker from '../components/BibleReferencePicker';
 import { compareReferences, formatBibleReference, formatBibleRange } from '../data/bibleBooks';
+import { playChime } from '../lib/audio';
 import { elapsedSeconds, formatDuration, formatTimer } from '../lib/format';
-import type { ActiveBibleSession, BibleReference } from '../types';
+import type { ActiveBibleSession, AppSettings, BibleReference } from '../types';
 
 interface BibleSessionViewProps {
   session: ActiveBibleSession;
+  settings: AppSettings;
   onFinish: (end: BibleReference, comment: string) => void;
   onCancel: () => void;
 }
 
-export default function BibleSessionView({ session, onFinish, onCancel }: BibleSessionViewProps) {
+export default function BibleSessionView({ session, settings, onFinish, onCancel }: BibleSessionViewProps) {
   const [now, setNow] = useState(Date.now());
   const [ending, setEnding] = useState(false);
   const [endReference, setEndReference] = useState<BibleReference>(session.start);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const intervalSeconds = Math.max(60, settings.chimeIntervalMinutes * 60);
+  const initialBucket = Math.floor(elapsedSeconds(session.startedAt) / intervalSeconds);
+  const lastChimeBucket = useRef(initialBucket);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -23,6 +28,15 @@ export default function BibleSessionView({ session, onFinish, onCancel }: BibleS
   }, []);
 
   const elapsed = elapsedSeconds(session.startedAt, now);
+
+  useEffect(() => {
+    if (!settings.chimeEnabled || intervalSeconds <= 0) return;
+    const bucket = Math.floor(elapsed / intervalSeconds);
+    if (bucket > 0 && bucket > lastChimeBucket.current) {
+      lastChimeBucket.current = bucket;
+      void playChime();
+    }
+  }, [elapsed, intervalSeconds, settings.chimeEnabled]);
 
   const save = () => {
     if (compareReferences(endReference, session.start) < 0) {

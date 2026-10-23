@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import AppNav from './components/AppNav';
 import BibleReferencePicker from './components/BibleReferencePicker';
+import ManualPracticeModal from './components/ManualPracticeModal';
 import Modal from './components/Modal';
 import { createReference, formatBibleRange, getNextReference } from './data/bibleBooks';
 import { primeChime } from './lib/audio';
 import { createDefaultAppData, loadAppData, saveAppData } from './lib/db';
 import { elapsedSeconds, formatDateTime } from './lib/format';
 import { createId } from './lib/id';
-import type { ActiveBibleSession, ActivePrayerSession, AppData, AppView, BibleReference, PrayerSession } from './types';
+import type {
+  ActiveBibleSession,
+  ActivePrayerSession,
+  AppData,
+  AppView,
+  BibleReference,
+  ManualPracticeRecord,
+  ManualPracticeType,
+  PrayerSession
+} from './types';
 import BibleSessionView from './views/BibleSessionView';
 import HistoryView from './views/HistoryView';
 import HomeView from './views/HomeView';
@@ -20,6 +30,7 @@ export default function App() {
   const [view, setView] = useState<AppView>('home');
   const [showPrayerSetup, setShowPrayerSetup] = useState(false);
   const [showBibleSetup, setShowBibleSetup] = useState(false);
+  const [manualPracticeType, setManualPracticeType] = useState<ManualPracticeType | null>(null);
   const [prayerMinutes, setPrayerMinutes] = useState(30);
   const [customPrayerMinutes, setCustomPrayerMinutes] = useState('');
   const [bibleStart, setBibleStart] = useState<BibleReference>(createReference('gen', 1, 1));
@@ -57,15 +68,21 @@ export default function App() {
     const safeMinutes = Math.min(360, Math.max(1, selectedMinutes || 30));
     await primeChime();
     const session: ActivePrayerSession = {
-      type: 'prayer', id: createId('prayer-session'), plannedDurationSeconds: safeMinutes * 60,
-      startedAt: new Date().toISOString(), segments: [], completedTargetKeys: []
+      type: 'prayer',
+      id: createId('prayer-session'),
+      plannedDurationSeconds: safeMinutes * 60,
+      startedAt: new Date().toISOString(),
+      segments: [],
+      completedTargetKeys: [],
+      sessionTargets: []
     };
     setData({ ...data, activeSession: session });
     setShowPrayerSetup(false);
     setCustomPrayerMinutes('');
   };
 
-  const startBible = () => {
+  const startBible = async () => {
+    await primeChime();
     const session: ActiveBibleSession = {
       type: 'bible', id: createId('bible-session'), startedAt: new Date().toISOString(), start: bibleStart
     };
@@ -111,6 +128,48 @@ export default function App() {
     setView('home');
   };
 
+  const addPrayerDuringSession = (name: string, saveRecurring: boolean) => {
+    if (data.activeSession?.type !== 'prayer') return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    if (saveRecurring) {
+      const existing = data.prayerTopics.find((topic) => topic.name.trim().toLocaleLowerCase('es') === trimmedName.toLocaleLowerCase('es'));
+      if (existing) {
+        const key = `topic:${existing.id}`;
+        const wasCompleted = data.activeSession.completedTargetKeys.includes(key);
+        setData({
+          ...data,
+          prayerTopics: data.prayerTopics.map((topic) => topic.id === existing.id ? { ...topic, active: true } : topic),
+          activeSession: wasCompleted ? {
+            ...data.activeSession,
+            sessionTargets: [...data.activeSession.sessionTargets, { id: createId('session-prayer'), label: trimmedName }]
+          } : data.activeSession
+        });
+        return;
+      }
+
+      setData({
+        ...data,
+        prayerTopics: [...data.prayerTopics, { id: createId('topic'), name: trimmedName, active: true, createdAt: new Date().toISOString() }]
+      });
+      return;
+    }
+
+    setData({
+      ...data,
+      activeSession: {
+        ...data.activeSession,
+        sessionTargets: [...data.activeSession.sessionTargets, { id: createId('session-prayer'), label: trimmedName }]
+      }
+    });
+  };
+
+  const saveManualPractice = (record: ManualPracticeRecord) => {
+    setData({ ...data, practiceRecords: [record, ...data.practiceRecords] });
+    setManualPracticeType(null);
+  };
+
   const cancelActive = () => {
     if (!window.confirm('¿Cancelar esta sesión? El tiempo de esta sesión no se guardará.')) return;
     setData({ ...data, activeSession: undefined });
@@ -118,9 +177,18 @@ export default function App() {
 
   let content;
   if (activeSession?.type === 'prayer') {
-    content = <PrayerSessionView data={data} session={activeSession} onChangeSession={(session) => setData({ ...data, activeSession: session })} onFinish={finishPrayer} onCancel={cancelActive} />;
+    content = (
+      <PrayerSessionView
+        data={data}
+        session={activeSession}
+        onChangeSession={(session) => setData({ ...data, activeSession: session })}
+        onAddPrayer={addPrayerDuringSession}
+        onFinish={finishPrayer}
+        onCancel={cancelActive}
+      />
+    );
   } else if (activeSession?.type === 'bible') {
-    content = <BibleSessionView session={activeSession} onFinish={finishBible} onCancel={cancelActive} />;
+    content = <BibleSessionView session={activeSession} settings={data.settings} onFinish={finishBible} onCancel={cancelActive} />;
   } else if (view === 'history') {
     content = <HistoryView data={data} />;
   } else if (view === 'statistics') {
@@ -128,12 +196,20 @@ export default function App() {
   } else if (view === 'settings') {
     content = <SettingsView data={data} onDataChange={setData} onImport={(imported) => { setData(imported); setView('home'); }} />;
   } else {
-    content = <HomeView data={data} onStartPrayer={() => setShowPrayerSetup(true)} onStartBible={() => {
-      const latest = recentBibleSessions[0];
-      const next = latest ? getNextReference(latest.end) : null;
-      if (next) setBibleStart(next);
-      setShowBibleSetup(true);
-    }} onResumeActive={() => undefined} />;
+    content = (
+      <HomeView
+        data={data}
+        onStartPrayer={() => setShowPrayerSetup(true)}
+        onStartBible={() => {
+          const latest = recentBibleSessions[0];
+          const next = latest ? getNextReference(latest.end) : null;
+          if (next) setBibleStart(next);
+          setShowBibleSetup(true);
+        }}
+        onAddPractice={setManualPracticeType}
+        onResumeActive={() => undefined}
+      />
+    );
   }
 
   return (
@@ -163,10 +239,18 @@ export default function App() {
               <section className="recent-readings"><h3>Últimas lecturas</h3>{recentBibleSessions.map((session) => <button type="button" key={session.id} onClick={() => { const next = getNextReference(session.end); if (next) setBibleStart(next); }}><span>{formatBibleRange(session.start, session.end)}</span><small>{formatDateTime(session.endedAt)}</small></button>)}</section>
             )}
             <BibleReferencePicker value={bibleStart} onChange={setBibleStart} label="¿Dónde vas a comenzar?" />
-            <p className="info-note">Solo registras el punto de inicio ahora. Cuando termines la sesión indicarás hasta dónde leíste y podrás agregar un comentario.</p>
-            <button className="primary-button full" type="button" onClick={startBible}>Comenzar lectura</button>
+            <p className="info-note">Solo registras el punto de inicio ahora. Cuando termines la sesión indicarás hasta dónde leíste y podrás agregar un comentario. {data.settings.chimeEnabled ? `El aviso sonará cada ${data.settings.chimeIntervalMinutes} minutos.` : 'El aviso sonoro está desactivado.'}</p>
+            <button className="primary-button full" type="button" onClick={() => void startBible()}>Comenzar lectura</button>
           </div>
         </Modal>
+      )}
+
+      {manualPracticeType && (
+        <ManualPracticeModal
+          type={manualPracticeType}
+          onClose={() => setManualPracticeType(null)}
+          onSave={saveManualPractice}
+        />
       )}
     </main>
   );

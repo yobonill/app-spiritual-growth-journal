@@ -8,7 +8,7 @@ const APP_DATA_KEY = 'app-data';
 
 interface StoredState {
   key: string;
-  value: AppData;
+  value: unknown;
 }
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -41,7 +41,47 @@ export function createDefaultAppData(): AppData {
     ],
     prayerRequests: [],
     prayerSessions: [],
-    bibleReadingSessions: []
+    bibleReadingSessions: [],
+    practiceRecords: []
+  };
+}
+
+export function normalizeAppData(value: unknown): AppData {
+  const defaults = createDefaultAppData();
+  if (!value || typeof value !== 'object') return defaults;
+
+  const raw = value as Partial<AppData>;
+
+  const settings = raw.settings && typeof raw.settings === 'object'
+    ? {
+        ...defaults.settings,
+        ...raw.settings,
+        chimeEnabled: typeof raw.settings.chimeEnabled === 'boolean' ? raw.settings.chimeEnabled : defaults.settings.chimeEnabled,
+        chimeIntervalMinutes: Number.isFinite(raw.settings.chimeIntervalMinutes)
+          ? Math.max(1, Number(raw.settings.chimeIntervalMinutes))
+          : defaults.settings.chimeIntervalMinutes
+      }
+    : defaults.settings;
+
+  let activeSession = raw.activeSession;
+  if (activeSession?.type === 'prayer') {
+    activeSession = {
+      ...activeSession,
+      segments: Array.isArray(activeSession.segments) ? activeSession.segments : [],
+      completedTargetKeys: Array.isArray(activeSession.completedTargetKeys) ? activeSession.completedTargetKeys : [],
+      sessionTargets: Array.isArray(activeSession.sessionTargets) ? activeSession.sessionTargets : []
+    };
+  }
+
+  return {
+    schemaVersion: 1,
+    settings,
+    prayerTopics: Array.isArray(raw.prayerTopics) ? raw.prayerTopics : defaults.prayerTopics,
+    prayerRequests: Array.isArray(raw.prayerRequests) ? raw.prayerRequests : [],
+    prayerSessions: Array.isArray(raw.prayerSessions) ? raw.prayerSessions : [],
+    bibleReadingSessions: Array.isArray(raw.bibleReadingSessions) ? raw.bibleReadingSessions : [],
+    practiceRecords: Array.isArray(raw.practiceRecords) ? raw.practiceRecords : [],
+    activeSession
   };
 }
 
@@ -52,7 +92,7 @@ export async function loadAppData(): Promise<AppData> {
     const request = transaction.objectStore(STORE_NAME).get(APP_DATA_KEY);
     request.onsuccess = () => {
       const stored = request.result as StoredState | undefined;
-      resolve(stored?.value ?? createDefaultAppData());
+      resolve(stored ? normalizeAppData(stored.value) : createDefaultAppData());
     };
     request.onerror = () => reject(request.error);
     transaction.oncomplete = () => database.close();

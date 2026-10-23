@@ -8,6 +8,7 @@ interface PrayerSessionViewProps {
   data: AppData;
   session: ActivePrayerSession;
   onChangeSession: (session: ActivePrayerSession) => void;
+  onAddPrayer: (name: string, saveRecurring: boolean) => void;
   onFinish: (comment: string) => void;
   onCancel: () => void;
 }
@@ -20,11 +21,14 @@ interface PrayerTarget {
   meta?: string;
 }
 
-export default function PrayerSessionView({ data, session, onChangeSession, onFinish, onCancel }: PrayerSessionViewProps) {
+export default function PrayerSessionView({ data, session, onChangeSession, onAddPrayer, onFinish, onCancel }: PrayerSessionViewProps) {
   const [now, setNow] = useState(Date.now());
   const [showTimer, setShowTimer] = useState(false);
   const [ending, setEnding] = useState(false);
   const [comment, setComment] = useState('');
+  const [showAddPrayer, setShowAddPrayer] = useState(false);
+  const [newPrayerName, setNewPrayerName] = useState('');
+  const [saveRecurring, setSaveRecurring] = useState(false);
   const intervalSeconds = Math.max(60, data.settings.chimeIntervalMinutes * 60);
   const initialBucket = Math.floor(elapsedSeconds(session.startedAt) / intervalSeconds);
   const lastChimeBucket = useRef(initialBucket);
@@ -53,8 +57,10 @@ export default function PrayerSessionView({ data, session, onChangeSession, onFi
     const requests: PrayerTarget[] = data.prayerRequests
       .filter((request) => request.status === 'active')
       .map((request) => ({ key: `request:${request.id}`, type: 'request', id: request.id, label: request.title, meta: 'Petición activa' }));
-    return [...requests, ...recurring].filter((target) => !session.completedTargetKeys.includes(target.key));
-  }, [data.prayerRequests, data.prayerTopics, session.completedTargetKeys]);
+    const temporary: PrayerTarget[] = session.sessionTargets
+      .map((target) => ({ key: `session:${target.id}`, type: 'session', id: target.id, label: target.label, meta: 'Solo esta sesión' }));
+    return [...requests, ...recurring, ...temporary].filter((target) => !session.completedTargetKeys.includes(target.key));
+  }, [data.prayerRequests, data.prayerTopics, session.completedTargetKeys, session.sessionTargets]);
 
   const activeElapsed = session.activeSegment ? elapsedSeconds(session.activeSegment.startedAt, now) : 0;
 
@@ -90,6 +96,16 @@ export default function PrayerSessionView({ data, session, onChangeSession, onFi
       segments: [...session.segments, segment],
       completedTargetKeys: [...session.completedTargetKeys, key]
     });
+  };
+
+
+  const addPrayer = () => {
+    const name = newPrayerName.trim();
+    if (!name) return;
+    onAddPrayer(name, saveRecurring);
+    setNewPrayerName('');
+    setSaveRecurring(false);
+    setShowAddPrayer(false);
   };
 
   const beginFinish = () => {
@@ -162,19 +178,42 @@ export default function PrayerSessionView({ data, session, onChangeSession, onFi
           <button className="stop-button" type="button" onClick={stopActiveTarget}>Detener este tema</button>
         </section>
       ) : (
-        <section className="prayer-targets">
-          {targets.length > 0 ? targets.map((target) => (
-            <button className="prayer-target" type="button" key={target.key} onClick={() => startTarget(target)}>
-              <span>{target.label}</span>
-              <small>{target.meta}</small>
-            </button>
-          )) : (
-            <div className="empty-state">
-              <strong>Completaste todos los temas de esta sesión.</strong>
-              <span>Puedes finalizar o continuar orando libremente.</span>
-            </div>
-          )}
-        </section>
+        <>
+          <section className="prayer-targets">
+            {targets.length > 0 ? targets.map((target) => (
+              <button className="prayer-target" type="button" key={target.key} onClick={() => startTarget(target)}>
+                <span>{target.label}</span>
+                <small>{target.meta}</small>
+              </button>
+            )) : (
+              <div className="empty-state">
+                <strong>Completaste todos los temas de esta sesión.</strong>
+                <span>Puedes agregar otra oración o finalizar.</span>
+              </div>
+            )}
+          </section>
+
+          <section className="quick-prayer-section">
+            {!showAddPrayer ? (
+              <button className="secondary-button full" type="button" onClick={() => setShowAddPrayer(true)}>+ Agregar otra oración</button>
+            ) : (
+              <div className="quick-prayer-form">
+                <label>
+                  Nueva oración
+                  <input value={newPrayerName} onChange={(event) => setNewPrayerName(event.target.value)} placeholder="Ej. Orar por una situación que surgió hoy" autoFocus />
+                </label>
+                <label className="compact-check quick-prayer-check">
+                  <input type="checkbox" checked={saveRecurring} onChange={(event) => setSaveRecurring(event.target.checked)} />
+                  <span>Guardar también como tema recurrente</span>
+                </label>
+                <div className="button-row">
+                  <button className="secondary-button small" type="button" onClick={() => { setShowAddPrayer(false); setNewPrayerName(''); setSaveRecurring(false); }}>Cancelar</button>
+                  <button className="primary-button small" type="button" onClick={addPrayer} disabled={!newPrayerName.trim()}>Agregar</button>
+                </div>
+              </div>
+            )}
+          </section>
+        </>
       )}
 
       <div className="session-footer-actions">
