@@ -226,6 +226,11 @@ label { display: grid; gap: 7px; color: #454b45; font-size: .92rem; font-weight:
 .period-selector { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
 .period-selector button { min-height: 42px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: #5e655e; font-weight: 750; }
 .period-selector button.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+.zero-days-toggle { display: flex; align-items: flex-start; gap: 10px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,253,248,.88); cursor: pointer; }
+.zero-days-toggle input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--green); flex: 0 0 auto; }
+.zero-days-toggle > span { display: grid; gap: 2px; min-width: 0; }
+.zero-days-toggle strong { color: #3e493d; font-size: .86rem; }
+.zero-days-toggle small { color: var(--muted); line-height: 1.35; }
 .daily-average-panel { border: 1px solid #bfcab9; background: linear-gradient(145deg,#f0f5ed,#e7efe3); border-radius: 22px; padding: 18px; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 18px; }
 .daily-average-main { display: grid; align-content: center; gap: 7px; }
 .daily-average-main > span { color: #566653; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }

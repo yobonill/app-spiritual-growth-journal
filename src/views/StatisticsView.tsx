@@ -93,6 +93,7 @@ function average(total: number, count: number): number {
 
 export default function StatisticsView({ data }: StatisticsViewProps) {
   const [period, setPeriod] = useState<PeriodKey>('30');
+  const [includeZeroDays, setIncludeZeroDays] = useState(true);
   const today = getTodayKey();
 
   const statistics = useMemo(() => {
@@ -124,6 +125,8 @@ export default function StatisticsView({ data }: StatisticsViewProps) {
 
     const dailyActivity = [...dailyMap.values()];
     const activeDaily = dailyActivity.filter((entry) => entry.prayerSeconds + entry.bibleSeconds > 0);
+    const prayerActiveDays = dailyActivity.filter((entry) => entry.prayerSeconds > 0).length;
+    const bibleActiveDays = dailyActivity.filter((entry) => entry.bibleSeconds > 0).length;
     const activeDays = activeDaily.length;
     const prayerSeconds = sum(prayerSessions.map((session) => session.durationSeconds));
     const bibleSeconds = sum(bibleSessions.map((session) => session.durationSeconds));
@@ -151,9 +154,11 @@ export default function StatisticsView({ data }: StatisticsViewProps) {
       spiritualSeconds,
       prayerSeconds,
       bibleSeconds,
-      averageSpiritualSeconds: average(spiritualSeconds, activeDays),
-      averagePrayerSeconds: average(prayerSeconds, activeDays),
-      averageBibleSeconds: average(bibleSeconds, activeDays),
+      averageSpiritualSeconds: average(spiritualSeconds, includeZeroDays ? periodDays.length : activeDays),
+      averagePrayerSeconds: average(prayerSeconds, includeZeroDays ? periodDays.length : prayerActiveDays),
+      averageBibleSeconds: average(bibleSeconds, includeZeroDays ? periodDays.length : bibleActiveDays),
+      prayerActiveDays,
+      bibleActiveDays,
       prayerSessions,
       bibleSessions,
       bestDay,
@@ -163,7 +168,7 @@ export default function StatisticsView({ data }: StatisticsViewProps) {
       fastingSeconds: sum(fastingRecords.map((record) => record.durationSeconds)),
       ciliceSeconds: sum(ciliceRecords.map((record) => record.durationSeconds))
     };
-  }, [data.bibleReadingSessions, data.prayerSessions, data.practiceRecords, period, today]);
+  }, [data.bibleReadingSessions, data.prayerSessions, data.practiceRecords, includeZeroDays, period, today]);
 
   const allPrayerDays = data.prayerSessions.map((session) => getDayKey(session.endedAt));
   const allBibleDays = data.bibleReadingSessions.map((session) => getDayKey(session.endedAt));
@@ -190,15 +195,23 @@ export default function StatisticsView({ data }: StatisticsViewProps) {
         ))}
       </div>
 
+      <label className="zero-days-toggle">
+        <input type="checkbox" checked={includeZeroDays} onChange={(event) => setIncludeZeroDays(event.target.checked)} />
+        <span>
+          <strong>Incluir días en 0</strong>
+          <small>Cada día del período cuenta; si una categoría no tuvo actividad ese día, aporta 0 a su promedio.</small>
+        </span>
+      </label>
+
       <section className="daily-average-panel">
         <div className="daily-average-main">
           <span>Promedio diario de crecimiento espiritual</span>
           <strong>{formatDuration(statistics.averageSpiritualSeconds)}</strong>
-          <small>Promedio entre los {statistics.activeDays} días con registros del período.</small>
+          <small>{includeZeroDays ? `Promedio entre los ${statistics.periodDays.length} días del período, incluyendo días en 0.` : `Promedio solo entre los ${statistics.activeDays} días con actividad.`}</small>
         </div>
         <div className="daily-average-breakdown">
-          <div><span>Oración</span><strong>{formatDuration(statistics.averagePrayerSeconds)}</strong></div>
-          <div><span>Lectura</span><strong>{formatDuration(statistics.averageBibleSeconds)}</strong></div>
+          <div><span>Oración</span><strong>{formatDuration(statistics.averagePrayerSeconds)}</strong><small>{includeZeroDays ? `${statistics.periodDays.length} días` : `${statistics.prayerActiveDays} días con oración`}</small></div>
+          <div><span>Lectura</span><strong>{formatDuration(statistics.averageBibleSeconds)}</strong><small>{includeZeroDays ? `${statistics.periodDays.length} días` : `${statistics.bibleActiveDays} días con lectura`}</small></div>
           <div><span>Consistencia</span><strong>{consistency}%</strong><small>{statistics.activeDays}/{statistics.periodDays.length} días</small></div>
         </div>
       </section>
