@@ -8,11 +8,12 @@ import type { ActiveBibleSession, AppSettings, BibleReference } from '../types';
 interface BibleSessionViewProps {
   session: ActiveBibleSession;
   settings: AppSettings;
+  groupName: string;
   onFinish: (end: BibleReference, comment: string) => void;
   onCancel: () => void;
 }
 
-export default function BibleSessionView({ session, settings, onFinish, onCancel }: BibleSessionViewProps) {
+export default function BibleSessionView({ session, settings, groupName, onFinish, onCancel }: BibleSessionViewProps) {
   const [now, setNow] = useState(Date.now());
   const [ending, setEnding] = useState(false);
   const [endReference, setEndReference] = useState<BibleReference>(session.start);
@@ -50,7 +51,7 @@ export default function BibleSessionView({ session, settings, onFinish, onCancel
     return (
       <div className="focus-view view-stack">
         <section className="session-heading">
-          <p className="eyebrow">Finalizar lectura</p>
+          <p className="eyebrow">Finalizar lectura · {groupName}</p>
           <h1>¿Hasta dónde leíste?</h1>
           <p>Comenzaste en <strong>{formatBibleReference(session.start)}</strong>.</p>
         </section>
@@ -77,7 +78,7 @@ export default function BibleSessionView({ session, settings, onFinish, onCancel
     <div className="focus-view bible-focus view-stack">
       <section className="reading-focus-card">
         <span className="session-symbol">📖</span>
-        <p>Leyendo desde</p>
+        <p>{groupName} · Leyendo desde</p>
         <h1>{formatBibleReference(session.start)}</h1>
         <strong>{formatTimer(elapsed)}</strong>
         <small>El tiempo es orientativo; la sesión se guarda cuando tú la terminas.</small>

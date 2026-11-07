@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { playChime, primeChime } from '../lib/audio';
+import SessionGroupManager from '../components/SessionGroupManager';
 import { downloadBackup, parseBackup } from '../lib/backup';
 import { formatDate, formatDateTime } from '../lib/format';
 import { createId } from '../lib/id';
@@ -20,6 +21,9 @@ const statusLabels: Record<PrayerRequestStatus, string> = {
 
 export default function SettingsView({ data, onDataChange, onImport }: SettingsViewProps) {
   const [topicName, setTopicName] = useState('');
+  const [topicError, setTopicError] = useState('');
+  const [topicGroupId, setTopicGroupId] = useState('');
+  const [requestGroupId, setRequestGroupId] = useState('');
   const [requestTitle, setRequestTitle] = useState('');
   const [requestInitialComment, setRequestInitialComment] = useState('');
   const [updateDrafts, setUpdateDrafts] = useState<Record<string, string>>({});
@@ -32,11 +36,14 @@ export default function SettingsView({ data, onDataChange, onImport }: SettingsV
   const addTopic = () => {
     const name = topicName.trim();
     if (!name) return;
+    const exists = data.prayerTopics.some((topic) => topic.name.trim().toLocaleLowerCase('es') === name.toLocaleLowerCase('es'));
+    if (exists) { setTopicError('Este tema ya existe. Puedes cambiar su sesión en la lista inferior, sin duplicarlo.'); return; }
     onDataChange({
       ...data,
-      prayerTopics: [...data.prayerTopics, { id: createId('topic'), name, active: true, createdAt: new Date().toISOString() }]
+      prayerTopics: [...data.prayerTopics, { id: createId('topic'), groupId: data.prayerGroups.some((group) => group.id === topicGroupId) ? topicGroupId : data.prayerGroups[0].id, name, active: true, createdAt: new Date().toISOString() }]
     });
     setTopicName('');
+    setTopicError('');
   };
 
   const addRequest = () => {
@@ -46,7 +53,7 @@ export default function SettingsView({ data, onDataChange, onImport }: SettingsV
     onDataChange({
       ...data,
       prayerRequests: [{
-        id: createId('request'), title, status: 'active', startedAt: now,
+        id: createId('request'), title, groupId: data.prayerGroups.some((group) => group.id === requestGroupId) ? requestGroupId : data.prayerGroups[0].id, status: 'active', startedAt: now,
         initialComment: requestInitialComment.trim() || undefined,
         updates: [], createdAt: now, updatedAt: now
       }, ...data.prayerRequests]
@@ -136,13 +143,25 @@ export default function SettingsView({ data, onDataChange, onImport }: SettingsV
         <button className="secondary-button" type="button" disabled={!data.settings.chimeEnabled} onClick={async () => { await primeChime(); await playChime(); }}>Probar sonido</button>
       </section>
 
+      <SessionGroupManager kind="prayer" data={data} onChange={onDataChange} />
+      <SessionGroupManager kind="reading" data={data} onChange={onDataChange} />
+
       <section className="panel-section">
         <div className="section-title"><div><h2>Temas recurrentes de oración</h2><p>Aparecen como opciones cada vez que inicias una sesión.</p></div></div>
-        <div className="inline-form"><input value={topicName} onChange={(event) => setTopicName(event.target.value)} placeholder="Ej. Mi matrimonio" /><button className="primary-button small" type="button" onClick={addTopic}>Agregar</button></div>
+        <label>Sesión para el nuevo tema
+          <select value={data.prayerGroups.some((group) => group.id === topicGroupId) ? topicGroupId : data.prayerGroups[0].id} onChange={(event) => setTopicGroupId(event.target.value)}>
+            {data.prayerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+          </select>
+        </label>
+        <div className="inline-form"><input value={topicName} onChange={(event) => { setTopicName(event.target.value); setTopicError(''); }} placeholder="Ej. Mi matrimonio" /><button className="primary-button small" type="button" onClick={addTopic}>Agregar</button></div>
+        {topicError && <p className="form-error" role="alert">{topicError}</p>}
         <div className="settings-list">
           {data.prayerTopics.map((topic) => (
             <div className="settings-row" key={topic.id}>
               <label className="compact-check"><input type="checkbox" checked={topic.active} onChange={(event) => onDataChange({ ...data, prayerTopics: data.prayerTopics.map((item) => item.id === topic.id ? { ...item, active: event.target.checked } : item) })} /><span>{topic.name}</span></label>
+              <select className="assignment-select" aria-label={`Sesión de ${topic.name}`} value={topic.groupId} onChange={(event) => onDataChange({ ...data, prayerTopics: data.prayerTopics.map((item) => item.id === topic.id ? { ...item, groupId: event.target.value } : item) })}>
+                {data.prayerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+              </select>
               <button className="danger-text-button" type="button" onClick={() => { if (window.confirm(`¿Eliminar “${topic.name}”? El historial anterior se conservará.`)) onDataChange({ ...data, prayerTopics: data.prayerTopics.filter((item) => item.id !== topic.id) }); }}>Eliminar</button>
             </div>
           ))}
@@ -153,6 +172,11 @@ export default function SettingsView({ data, onDataChange, onImport }: SettingsV
         <div className="section-title"><div><h2>Peticiones de oración</h2><p>Registra cuándo comenzaron, su evolución y cómo terminaron.</p></div></div>
         <div className="request-create-form">
           <label>Título<input value={requestTitle} onChange={(event) => setRequestTitle(event.target.value)} placeholder="Ej. Sanidad de Martha" /></label>
+          <label>Sesión de oración
+            <select value={data.prayerGroups.some((group) => group.id === requestGroupId) ? requestGroupId : data.prayerGroups[0].id} onChange={(event) => setRequestGroupId(event.target.value)}>
+              {data.prayerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>
           <label>Comentario inicial <span className="optional">(opcional)</span><textarea rows={3} value={requestInitialComment} onChange={(event) => setRequestInitialComment(event.target.value)} placeholder="Contexto inicial de la petición" /></label>
           <button className="primary-button" type="button" onClick={addRequest}>Crear petición</button>
         </div>
@@ -164,6 +188,11 @@ export default function SettingsView({ data, onDataChange, onImport }: SettingsV
             return (
               <article className="request-card" key={request.id}>
                 <header><div><span className={`status-pill ${request.status}`}>{statusLabels[request.status]}</span><h3>{request.title}</h3><small>Desde {formatDate(request.startedAt)}</small></div></header>
+                <label className="request-group-label">Sesión
+                  <select value={request.groupId} onChange={(event) => onDataChange({ ...data, prayerRequests: data.prayerRequests.map((item) => item.id === request.id ? { ...item, groupId: event.target.value } : item) })}>
+                    {data.prayerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                  </select>
+                </label>
                 {request.initialComment && <p className="request-note"><strong>Inicio:</strong> {request.initialComment}</p>}
                 {request.updates.length > 0 && <div className="request-timeline">{request.updates.map((update) => <div key={update.id}><small>{formatDateTime(update.createdAt)}</small><p>{update.comment}</p></div>)}</div>}
                 {request.status === 'active' ? (

@@ -4,7 +4,7 @@ import { normalizeAppData } from './db';
 export interface BackupEnvelope {
   app: 'spiritual-growth-journal';
   exportedAt: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   data: AppData;
 }
 
@@ -12,7 +12,7 @@ export function createBackup(data: AppData): BackupEnvelope {
   return {
     app: 'spiritual-growth-journal',
     exportedAt: new Date().toISOString(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     data
   };
 }
@@ -34,9 +34,9 @@ export function parseBackup(text: string): AppData {
   const parsed = JSON.parse(text) as Partial<BackupEnvelope>;
   if (
     parsed.app !== 'spiritual-growth-journal' ||
-    parsed.schemaVersion !== 1 ||
+    ![1, 2].includes(Number(parsed.schemaVersion)) ||
     !parsed.data ||
-    parsed.data.schemaVersion !== 1 ||
+    ![1, 2].includes(Number(parsed.data.schemaVersion)) ||
     !Array.isArray(parsed.data.prayerTopics) ||
     !Array.isArray(parsed.data.prayerRequests) ||
     !Array.isArray(parsed.data.prayerSessions) ||

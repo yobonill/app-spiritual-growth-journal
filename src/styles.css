@@ -289,3 +289,39 @@ label { display: grid; gap: 7px; color: #454b45; font-size: .92rem; font-weight:
   .period-selector { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .manual-practice-metrics { grid-template-columns: 1fr; }
 }
+
+/* Named prayer and reading session groups */
+.group-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; border-bottom: 1px solid #eee9df; padding: 8px 0; }
+.group-settings-row > strong { min-width: 0; overflow-wrap: anywhere; color: var(--green-dark); }
+.group-settings-row > input { flex: 1 1 auto; min-width: 0; }
+.group-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.group-row-actions button { font-size: .8rem; }
+.settings-row { flex-wrap: wrap; }
+.settings-row > .compact-check { flex: 1 1 150px; }
+.settings-row .assignment-select { width: auto; min-width: 125px; max-width: 100%; font-size: .85rem; padding: 9px; }
+.request-group-label { max-width: 290px; }
+.prayer-group-list { display: grid; gap: 10px; }
+.prayer-group { background: var(--paper); border: 1px solid var(--line); border-radius: 15px; overflow: hidden; }
+.prayer-group > summary { cursor: pointer; padding: 15px 16px; color: var(--green-dark); font-weight: 800; }
+.prayer-group > summary small { display: block; margin: 4px 0 0 20px; font-weight: 550; color: var(--muted); font-size: .78rem; }
+.prayer-group[open] > summary { background: #eef3e9; border-bottom: 1px solid #dce5d4; }
+.prayer-group > .prayer-targets { padding: 12px; }
+.prayer-group > .prayer-targets > .muted { margin: 3px 0; grid-column: 1 / -1; }
+.prayer-group .prayer-target { min-height: 84px; }
+.prayer-time-editor { gap: 15px; }
+.prayer-time-editor > .muted { margin: 0; line-height: 1.45; }
+.time-edit-card { padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); display: grid; gap: 12px; }
+.time-edit-card > strong { color: var(--green-dark); }
+.time-edit-card > p { margin: 0; line-height: 1.45; }
+.time-edit-segment { padding-top: 11px; border-top: 1px solid #eee8dd; display: grid; gap: 7px; }
+.time-edit-segment > span { font-weight: 700; overflow-wrap: anywhere; }
+.duration-editor { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+.duration-editor label { font-size: .77rem; color: var(--muted); }
+.duration-editor input { padding: 10px 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.edit-history-button { justify-self: start; }
+@media (max-width: 460px) {
+  .group-settings-row { flex-wrap: wrap; }
+  .group-row-actions { margin-left: auto; }
+  .group-settings-row > strong { flex: 1 1 auto; }
+  .settings-row > .assignment-select { flex: 1 1 130px; }
+}

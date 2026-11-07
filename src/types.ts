@@ -6,7 +6,14 @@ export interface AppSettings {
   lastBackupAt?: string;
 }
 
+export interface NamedSessionGroup {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface PrayerTopic {
+  groupId: string;
   id: string;
   name: string;
   active: boolean;
@@ -22,6 +29,7 @@ export interface PrayerRequestUpdate {
 export interface PrayerRequest {
   id: string;
   title: string;
+  groupId: string;
   status: PrayerRequestStatus;
   startedAt: string;
   resolvedAt?: string;
@@ -46,6 +54,8 @@ export interface PrayerSegment {
 
 export interface PrayerSession {
   id: string;
+  groupId?: string;
+  groupNameSnapshot?: string;
   plannedDurationSeconds: number;
   startedAt: string;
   endedAt: string;
@@ -63,6 +73,8 @@ export interface BibleReference {
 
 export interface BibleReadingSession {
   id: string;
+  groupId: string;
+  groupNameSnapshot?: string;
   startedAt: string;
   endedAt: string;
   durationSeconds: number;
@@ -99,6 +111,9 @@ export interface ActivePrayerSegment {
 export interface ActivePrayerSession {
   type: 'prayer';
   id: string;
+  groupId: string;
+  pausedSeconds?: number;
+  reviewStartedAt?: string;
   plannedDurationSeconds: number;
   startedAt: string;
   segments: PrayerSegment[];
@@ -110,6 +125,7 @@ export interface ActivePrayerSession {
 export interface ActiveBibleSession {
   type: 'bible';
   id: string;
+  groupId: string;
   startedAt: string;
   start: BibleReference;
 }
@@ -117,8 +133,10 @@ export interface ActiveBibleSession {
 export type ActiveSession = ActivePrayerSession | ActiveBibleSession;
 
 export interface AppData {
-  schemaVersion: 1;
+  schemaVersion: 2;
   settings: AppSettings;
+  prayerGroups: NamedSessionGroup[];
+  readingGroups: NamedSessionGroup[];
   prayerTopics: PrayerTopic[];
   prayerRequests: PrayerRequest[];
   prayerSessions: PrayerSession[];

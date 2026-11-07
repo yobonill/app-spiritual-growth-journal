@@ -2,9 +2,11 @@ import type { AppData } from '../types';
 import { createId } from './id';
 
 const DATABASE_NAME = 'spiritual-growth-journal-db';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 1; // The object store is unchanged; data migrates on read.
 const STORE_NAME = 'state';
 const APP_DATA_KEY = 'app-data';
+export const DEFAULT_PRAYER_GROUP_ID = 'prayer-default';
+export const DEFAULT_READING_GROUP_ID = 'reading-default';
 
 interface StoredState {
   key: string;
@@ -28,16 +30,18 @@ function openDatabase(): Promise<IDBDatabase> {
 export function createDefaultAppData(): AppData {
   const now = new Date().toISOString();
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     settings: {
       chimeEnabled: true,
       chimeIntervalMinutes: 10
     },
+    prayerGroups: [{ id: DEFAULT_PRAYER_GROUP_ID, name: 'General', createdAt: now }],
+    readingGroups: [{ id: DEFAULT_READING_GROUP_ID, name: 'Lectura habitual', createdAt: now }],
     prayerTopics: [
-      { id: createId('topic'), name: 'Dar gracias', active: true, createdAt: now },
-      { id: createId('topic'), name: 'Mi familia', active: true, createdAt: now },
-      { id: createId('topic'), name: 'Mi crecimiento espiritual', active: true, createdAt: now },
-      { id: createId('topic'), name: 'Iglesia', active: true, createdAt: now }
+      { id: createId('topic'), groupId: DEFAULT_PRAYER_GROUP_ID, name: 'Dar gracias', active: true, createdAt: now },
+      { id: createId('topic'), groupId: DEFAULT_PRAYER_GROUP_ID, name: 'Mi familia', active: true, createdAt: now },
+      { id: createId('topic'), groupId: DEFAULT_PRAYER_GROUP_ID, name: 'Mi crecimiento espiritual', active: true, createdAt: now },
+      { id: createId('topic'), groupId: DEFAULT_PRAYER_GROUP_ID, name: 'Iglesia', active: true, createdAt: now }
     ],
     prayerRequests: [],
     prayerSessions: [],
@@ -63,23 +67,46 @@ export function normalizeAppData(value: unknown): AppData {
       }
     : defaults.settings;
 
+  // Version 1 data had no named groups. Keep every record and map it to
+  // stable defaults, including a session that was in progress during upgrade.
+  const prayerGroups = Array.isArray(raw.prayerGroups) && raw.prayerGroups.length
+    ? raw.prayerGroups : defaults.prayerGroups;
+  const readingGroups = Array.isArray(raw.readingGroups) && raw.readingGroups.length
+    ? raw.readingGroups : defaults.readingGroups;
+  const prayerGroupIds = new Set(prayerGroups.map((group) => group.id));
+  const readingGroupIds = new Set(readingGroups.map((group) => group.id));
+  const prayerFallback = prayerGroups[0].id;
+  const readingFallback = readingGroups[0].id;
+  const prayerTopics = (Array.isArray(raw.prayerTopics) ? raw.prayerTopics : defaults.prayerTopics)
+    .map((topic) => ({ ...topic, groupId: prayerGroupIds.has(topic.groupId) ? topic.groupId : prayerFallback }));
+  const prayerRequests = (Array.isArray(raw.prayerRequests) ? raw.prayerRequests : [])
+    .map((request) => ({ ...request, groupId: prayerGroupIds.has(request.groupId) ? request.groupId : prayerFallback }));
+  const bibleReadingSessions = (Array.isArray(raw.bibleReadingSessions) ? raw.bibleReadingSessions : [])
+    .map((session) => ({ ...session, groupId: session.groupId || readingFallback }));
+
   let activeSession = raw.activeSession;
   if (activeSession?.type === 'prayer') {
     activeSession = {
       ...activeSession,
+      groupId: prayerGroupIds.has(activeSession.groupId) ? activeSession.groupId : prayerFallback,
+      pausedSeconds: Number.isFinite(activeSession.pausedSeconds) ? Math.max(0, Number(activeSession.pausedSeconds)) : 0,
       segments: Array.isArray(activeSession.segments) ? activeSession.segments : [],
       completedTargetKeys: Array.isArray(activeSession.completedTargetKeys) ? activeSession.completedTargetKeys : [],
       sessionTargets: Array.isArray(activeSession.sessionTargets) ? activeSession.sessionTargets : []
     };
+  } else if (activeSession?.type === 'bible') {
+    activeSession = { ...activeSession, groupId: readingGroupIds.has(activeSession.groupId) ? activeSession.groupId : readingFallback };
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     settings,
-    prayerTopics: Array.isArray(raw.prayerTopics) ? raw.prayerTopics : defaults.prayerTopics,
-    prayerRequests: Array.isArray(raw.prayerRequests) ? raw.prayerRequests : [],
+    prayerGroups,
+    readingGroups,
+    prayerTopics,
+    prayerRequests,
     prayerSessions: Array.isArray(raw.prayerSessions) ? raw.prayerSessions : [],
-    bibleReadingSessions: Array.isArray(raw.bibleReadingSessions) ? raw.bibleReadingSessions : [],
+    bibleReadingSessions,
     practiceRecords: Array.isArray(raw.practiceRecords) ? raw.practiceRecords : [],
     activeSession
   };

@@ -32,6 +32,8 @@ export default function App() {
   const [showBibleSetup, setShowBibleSetup] = useState(false);
   const [manualPracticeType, setManualPracticeType] = useState<ManualPracticeType | null>(null);
   const [prayerMinutes, setPrayerMinutes] = useState(30);
+  const [prayerGroupId, setPrayerGroupId] = useState('');
+  const [readingGroupId, setReadingGroupId] = useState('');
   const [customPrayerMinutes, setCustomPrayerMinutes] = useState('');
   const [bibleStart, setBibleStart] = useState<BibleReference>(createReference('gen', 1, 1));
   const [storageError, setStorageError] = useState('');
@@ -54,8 +56,8 @@ export default function App() {
 
   const recentBibleSessions = useMemo(() => {
     if (!data) return [];
-    return [...data.bibleReadingSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt)).slice(0, 3);
-  }, [data]);
+    return [...data.bibleReadingSessions].filter((item) => item.groupId === (readingGroupId || data.readingGroups[0]?.id)).sort((a, b) => b.endedAt.localeCompare(a.endedAt)).slice(0, 3);
+  }, [data, readingGroupId]);
 
   if (!data) {
     return <main className="app-shell"><div className="loading-state"><span className="loading-mark">✦</span><p>Preparando tu diario…</p></div></main>;
@@ -70,6 +72,8 @@ export default function App() {
     const session: ActivePrayerSession = {
       type: 'prayer',
       id: createId('prayer-session'),
+      groupId: data.prayerGroups.some((group) => group.id === prayerGroupId) ? prayerGroupId : data.prayerGroups[0].id,
+      pausedSeconds: 0,
       plannedDurationSeconds: safeMinutes * 60,
       startedAt: new Date().toISOString(),
       segments: [],
@@ -84,28 +88,14 @@ export default function App() {
   const startBible = async () => {
     await primeChime();
     const session: ActiveBibleSession = {
-      type: 'bible', id: createId('bible-session'), startedAt: new Date().toISOString(), start: bibleStart
+      type: 'bible', id: createId('bible-session'), groupId: data.readingGroups.some((group) => group.id === readingGroupId) ? readingGroupId : data.readingGroups[0].id, startedAt: new Date().toISOString(), start: bibleStart
     };
     setData({ ...data, activeSession: session });
     setShowBibleSetup(false);
   };
 
-  const finishPrayer = (comment: string) => {
-    if (data.activeSession?.type !== 'prayer') return;
-    const active = data.activeSession;
-    const endedAt = new Date().toISOString();
-    const finalSegments = [...active.segments];
-    if (active.activeSegment) {
-      finalSegments.push({
-        id: createId('segment'), targetType: active.activeSegment.targetType, targetId: active.activeSegment.targetId,
-        labelSnapshot: active.activeSegment.labelSnapshot, startedAt: active.activeSegment.startedAt, endedAt,
-        durationSeconds: elapsedSeconds(active.activeSegment.startedAt, new Date(endedAt).getTime())
-      });
-    }
-    const saved: PrayerSession = {
-      id: active.id, plannedDurationSeconds: active.plannedDurationSeconds, startedAt: active.startedAt, endedAt,
-      durationSeconds: elapsedSeconds(active.startedAt, new Date(endedAt).getTime()), comment: comment || undefined, segments: finalSegments
-    };
+  const finishPrayer = (saved: PrayerSession) => {
+    if (data.activeSession?.type !== 'prayer' || saved.id !== data.activeSession.id) return;
     setData({ ...data, activeSession: undefined, prayerSessions: [saved, ...data.prayerSessions] });
     setView('home');
   };
@@ -118,7 +108,7 @@ export default function App() {
       ...data,
       activeSession: undefined,
       bibleReadingSessions: [{
-        id: active.id, startedAt: active.startedAt, endedAt,
+        id: active.id, groupId: active.groupId, groupNameSnapshot: data.readingGroups.find((group) => group.id === active.groupId)?.name, startedAt: active.startedAt, endedAt,
         durationSeconds: elapsedSeconds(active.startedAt, new Date(endedAt).getTime()),
         start: active.start, end, comment: comment || undefined
       }, ...data.bibleReadingSessions]
@@ -151,7 +141,7 @@ export default function App() {
 
       setData({
         ...data,
-        prayerTopics: [...data.prayerTopics, { id: createId('topic'), name: trimmedName, active: true, createdAt: new Date().toISOString() }]
+        prayerTopics: [...data.prayerTopics, { id: createId('topic'), groupId: data.activeSession.groupId, name: trimmedName, active: true, createdAt: new Date().toISOString() }]
       });
       return;
     }
@@ -188,9 +178,9 @@ export default function App() {
       />
     );
   } else if (activeSession?.type === 'bible') {
-    content = <BibleSessionView session={activeSession} settings={data.settings} onFinish={finishBible} onCancel={cancelActive} />;
+    content = <BibleSessionView session={activeSession} groupName={data.readingGroups.find((group) => group.id === activeSession.groupId)?.name ?? 'Lectura habitual'} settings={data.settings} onFinish={finishBible} onCancel={cancelActive} />;
   } else if (view === 'history') {
-    content = <HistoryView data={data} />;
+    content = <HistoryView data={data} onChangeData={setData} />;
   } else if (view === 'statistics') {
     content = <StatisticsView data={data} />;
   } else if (view === 'settings') {
@@ -201,9 +191,11 @@ export default function App() {
         data={data}
         onStartPrayer={() => setShowPrayerSetup(true)}
         onStartBible={() => {
-          const latest = recentBibleSessions[0];
-          const next = latest ? getNextReference(latest.end) : null;
-          if (next) setBibleStart(next);
+          const groupId = data.readingGroups.some((group) => group.id === readingGroupId) ? readingGroupId : data.readingGroups[0].id;
+          const latest = [...data.bibleReadingSessions].filter((item) => item.groupId === groupId)
+            .sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
+          setReadingGroupId(groupId);
+          setBibleStart(latest ? getNextReference(latest.end) ?? latest.end : createReference('gen', 1, 1));
           setShowBibleSetup(true);
         }}
         onAddPractice={setManualPracticeType}
@@ -221,6 +213,11 @@ export default function App() {
       {showPrayerSetup && (
         <Modal title="Preparar sesión de oración" onClose={() => setShowPrayerSetup(false)}>
           <div className="modal-body view-stack">
+            <label>Sesión de oración
+              <select value={data.prayerGroups.some((group) => group.id === prayerGroupId) ? prayerGroupId : data.prayerGroups[0].id} onChange={(event) => setPrayerGroupId(event.target.value)}>
+                {data.prayerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+              </select>
+            </label>
             <p className="muted">¿Cuánto tiempo tienes disponible para orar?</p>
             <div className="duration-options">
               {[30, 45, 60].map((minutes) => <button type="button" key={minutes} className={!customPrayerMinutes && prayerMinutes === minutes ? 'duration-choice selected' : 'duration-choice'} onClick={() => { setPrayerMinutes(minutes); setCustomPrayerMinutes(''); }}>{minutes === 60 ? '1 hora' : `${minutes} min`}</button>)}
@@ -235,6 +232,16 @@ export default function App() {
       {showBibleSetup && (
         <Modal title="Iniciar lectura bíblica" onClose={() => setShowBibleSetup(false)}>
           <div className="modal-body view-stack">
+            <label>Sesión de lectura
+              <select value={data.readingGroups.some((group) => group.id === readingGroupId) ? readingGroupId : data.readingGroups[0].id} onChange={(event) => {
+                const groupId = event.target.value;
+                setReadingGroupId(groupId);
+                const latest = [...data.bibleReadingSessions].filter((item) => item.groupId === groupId).sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
+                setBibleStart(latest ? getNextReference(latest.end) ?? latest.end : createReference('gen', 1, 1));
+              }}>
+                {data.readingGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+              </select>
+            </label>
             {recentBibleSessions.length > 0 && (
               <section className="recent-readings"><h3>Últimas lecturas</h3>{recentBibleSessions.map((session) => <button type="button" key={session.id} onClick={() => { const next = getNextReference(session.end); if (next) setBibleStart(next); }}><span>{formatBibleRange(session.start, session.end)}</span><small>{formatDateTime(session.endedAt)}</small></button>)}</section>
             )}

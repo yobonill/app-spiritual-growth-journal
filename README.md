@@ -47,3 +47,11 @@ Base local: `spiritual-growth-journal-db`
 Cache PWA: `spiritual-growth-journal-shell`
 
 El respaldo JSON incluye todos los datos de la aplicación y puede reimportarse desde Configuración.
+
+### Organización y correcciones de tiempos
+
+- En **Configuración** puedes crear, renombrar o eliminar sesiones de oración y de lectura.
+- Cada tema y petición de oración pertenece a una sesión. Durante una oración, las sesiones se muestran como secciones plegables; todos los temas siguen disponibles.
+- Las sesiones de lectura guardan progresos independientes. Las lecturas antiguas se vinculan automáticamente a «Lectura habitual».
+- Al pulsar **Terminar oración**, se congela el cronómetro. Antes de guardar puedes corregir fecha de finalización, duración total y tiempos por tema. También puedes corregir oraciones ya guardadas desde **Historial**.
+- El formato de respaldo es **schemaVersion 2**, con importación compatible con respaldos `schemaVersion 1`. No se pierden registros anteriores durante la migración.

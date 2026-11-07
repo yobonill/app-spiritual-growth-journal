@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { formatBibleRange } from '../data/bibleBooks';
+import Modal from '../components/Modal';
+import PrayerSessionEditor from '../components/PrayerSessionEditor';
 import { formatDateTime, formatDuration } from '../lib/format';
 import type { AppData, ManualPracticeType } from '../types';
 
-interface HistoryViewProps { data: AppData; }
+interface HistoryViewProps { data: AppData; onChangeData: (data: AppData) => void; }
 
 type HistoryFilter = 'all' | 'prayer' | 'bible' | ManualPracticeType;
 
@@ -20,7 +22,9 @@ const filterLabels: Array<{ value: HistoryFilter; label: string }> = [
   { value: 'cilice', label: 'Cilicio' }
 ];
 
-export default function HistoryView({ data }: HistoryViewProps) {
+export default function HistoryView({ data, onChangeData }: HistoryViewProps) {
+  const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
+  const editingPrayer = data.prayerSessions.find((session) => session.id === editingPrayerId);
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const items: HistoryItem[] = [
     ...data.prayerSessions.map((session) => ({ type: 'prayer' as const, endedAt: session.endedAt, data: session })),
@@ -60,12 +64,14 @@ export default function HistoryView({ data }: HistoryViewProps) {
               return (
                 <article className="history-card" key={`prayer-${item.data.id}`}>
                   <div className="history-card-head"><span className="history-icon">🙏</span><div><strong>Oración</strong><small>{formatDateTime(item.data.endedAt)}</small></div><b>{formatDuration(item.data.durationSeconds)}</b></div>
+                  {item.data.groupId && <small className="muted">{data.prayerGroups.find((group) => group.id === item.data.groupId)?.name || item.data.groupNameSnapshot || 'Sesión eliminada'}</small>}
                   {item.data.segments.length > 0 && (
                     <div className="history-tags">
                       {item.data.segments.map((segment) => <span key={segment.id}>{segment.labelSnapshot} · {formatDuration(segment.durationSeconds)}</span>)}
                     </div>
                   )}
                   {item.data.comment && <p className="history-comment">“{item.data.comment}”</p>}
+                  <button className="secondary-button small edit-history-button" type="button" onClick={() => setEditingPrayerId(item.data.id)}>Editar tiempos</button>
                 </article>
               );
             }
@@ -74,6 +80,7 @@ export default function HistoryView({ data }: HistoryViewProps) {
               return (
                 <article className="history-card" key={`bible-${item.data.id}`}>
                   <div className="history-card-head"><span className="history-icon">📖</span><div><strong>{formatBibleRange(item.data.start, item.data.end)}</strong><small>{formatDateTime(item.data.endedAt)}</small></div><b>{formatDuration(item.data.durationSeconds)}</b></div>
+                  <small className="muted">{data.readingGroups.find((group) => group.id === item.data.groupId)?.name || item.data.groupNameSnapshot || 'Lectura habitual'}</small>
                   {item.data.comment && <p className="history-comment">“{item.data.comment}”</p>}
                 </article>
               );
@@ -96,6 +103,21 @@ export default function HistoryView({ data }: HistoryViewProps) {
             );
           })}
         </div>
+      )}
+      {editingPrayer && (
+        <Modal title="Corregir oración guardada" onClose={() => setEditingPrayerId(null)}>
+          <div className="modal-body">
+            <PrayerSessionEditor
+              key={editingPrayer.id}
+              session={editingPrayer}
+              onCancel={() => setEditingPrayerId(null)}
+              onSave={(updated) => {
+                onChangeData({ ...data, prayerSessions: data.prayerSessions.map((item) => item.id === updated.id ? updated : item) });
+                setEditingPrayerId(null);
+              }}
+            />
+          </div>
+        </Modal>
       )}
     </div>
   );

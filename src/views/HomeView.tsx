@@ -1,4 +1,4 @@
-import { formatBibleRange, getNextReference } from '../data/bibleBooks';
+import { formatBibleRange } from '../data/bibleBooks';
 import { formatDateTime, formatDuration } from '../lib/format';
 import type { AppData, ManualPracticeType } from '../types';
 
@@ -13,7 +13,6 @@ interface HomeViewProps {
 export default function HomeView({ data, onStartPrayer, onStartBible, onAddPractice, onResumeActive }: HomeViewProps) {
   const latestBible = [...data.bibleReadingSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
   const latestPrayer = [...data.prayerSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
-  const nextReference = latestBible ? getNextReference(latestBible.end) : null;
 
   return (
     <div className="view-stack home-view">
@@ -45,7 +44,7 @@ export default function HomeView({ data, onStartPrayer, onStartBible, onAddPract
           <span className="session-symbol">📖</span>
           <span>
             <strong>Iniciar sesión de lectura</strong>
-            <small>{nextReference ? `Sugerencia: continuar en ${nextReference.bookName} ${nextReference.chapter}:${nextReference.verse}` : 'Registra dónde comienzas y dónde terminas'}</small>
+            <small>Selecciona una sesión y continúa tu lectura</small>
           </span>
         </button>
       </section>
