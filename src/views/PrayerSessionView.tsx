@@ -163,7 +163,7 @@ export default function PrayerSessionView({ data, session, onChangeSession, onAd
             {data.prayerGroups.map((group) => {
               const items = targets.filter((target) => target.groupId === group.id);
               return (
-                <details className="prayer-group" key={group.id} defaultOpen={group.id === session.groupId}>
+                <details className="prayer-group" key={group.id} open={group.id === session.groupId}>
                   <summary><span>{group.name}</span><small>{items.length} {items.length === 1 ? 'tema disponible' : 'temas disponibles'}</small></summary>
                   <div className="prayer-targets">
                     {items.map((target) => <button className="prayer-target" key={target.key} type="button" onClick={() => startTarget(target)}><span>{target.label}</span><small>{target.meta}</small></button>)}
@@ -173,7 +173,7 @@ export default function PrayerSessionView({ data, session, onChangeSession, onAd
               );
             })}
             {targets.some((target) => !target.groupId) && (
-              <details className="prayer-group" defaultOpen><summary><span>Esta oración</span><small>Temas temporales</small></summary><div className="prayer-targets">
+              <details className="prayer-group" open><summary><span>Esta oración</span><small>Temas temporales</small></summary><div className="prayer-targets">
                 {targets.filter((target) => !target.groupId).map((target) => <button className="prayer-target" type="button" key={target.key} onClick={() => startTarget(target)}><span>{target.label}</span><small>{target.meta}</small></button>)}
               </div></details>
             )}
