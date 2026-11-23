@@ -4,7 +4,7 @@ import { normalizeAppData } from './db';
 export interface BackupEnvelope {
   app: 'spiritual-growth-journal';
   exportedAt: string;
-  schemaVersion: 2;
+  schemaVersion: 3;
   data: AppData;
 }
 
@@ -12,7 +12,7 @@ export function createBackup(data: AppData): BackupEnvelope {
   return {
     app: 'spiritual-growth-journal',
     exportedAt: new Date().toISOString(),
-    schemaVersion: 2,
+    schemaVersion: 3,
     data
   };
 }
@@ -34,13 +34,17 @@ export function parseBackup(text: string): AppData {
   const parsed = JSON.parse(text) as Partial<BackupEnvelope>;
   if (
     parsed.app !== 'spiritual-growth-journal' ||
-    ![1, 2].includes(Number(parsed.schemaVersion)) ||
+    ![1, 2, 3].includes(Number(parsed.schemaVersion)) ||
     !parsed.data ||
-    ![1, 2].includes(Number(parsed.data.schemaVersion)) ||
+    ![1, 2, 3].includes(Number(parsed.data.schemaVersion)) ||
     !Array.isArray(parsed.data.prayerTopics) ||
     !Array.isArray(parsed.data.prayerRequests) ||
     !Array.isArray(parsed.data.prayerSessions) ||
-    !Array.isArray(parsed.data.bibleReadingSessions)
+    !Array.isArray(parsed.data.bibleReadingSessions) ||
+    (Number(parsed.data.schemaVersion) === 3 && (
+      !Array.isArray(parsed.data.verseCategories) ||
+      !Array.isArray(parsed.data.categorizedVerses)
+    ))
   ) {
     throw new Error('El archivo no es un respaldo válido de esta aplicación.');
   }

@@ -30,7 +30,7 @@ function openDatabase(): Promise<IDBDatabase> {
 export function createDefaultAppData(): AppData {
   const now = new Date().toISOString();
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     settings: {
       chimeEnabled: true,
       chimeIntervalMinutes: 10
@@ -46,7 +46,9 @@ export function createDefaultAppData(): AppData {
     prayerRequests: [],
     prayerSessions: [],
     bibleReadingSessions: [],
-    practiceRecords: []
+    practiceRecords: [],
+    verseCategories: [],
+    categorizedVerses: []
   };
 }
 
@@ -84,6 +86,13 @@ export function normalizeAppData(value: unknown): AppData {
   const bibleReadingSessions = (Array.isArray(raw.bibleReadingSessions) ? raw.bibleReadingSessions : [])
     .map((session) => ({ ...session, groupId: session.groupId || readingFallback }));
 
+  // A v1/v2 installation has no verse categories. Do not alter its existing
+  // prayer or reading history when migrating to v3.
+  const verseCategories = Array.isArray(raw.verseCategories) ? raw.verseCategories : [];
+  const categoryIds = new Set(verseCategories.map((category) => category.id));
+  const categorizedVerses = (Array.isArray(raw.categorizedVerses) ? raw.categorizedVerses : [])
+    .filter((verse) => categoryIds.has(verse.categoryId));
+
   let activeSession = raw.activeSession;
   if (activeSession?.type === 'prayer') {
     activeSession = {
@@ -99,7 +108,7 @@ export function normalizeAppData(value: unknown): AppData {
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     settings,
     prayerGroups,
     readingGroups,
@@ -108,6 +117,8 @@ export function normalizeAppData(value: unknown): AppData {
     prayerSessions: Array.isArray(raw.prayerSessions) ? raw.prayerSessions : [],
     bibleReadingSessions,
     practiceRecords: Array.isArray(raw.practiceRecords) ? raw.practiceRecords : [],
+    verseCategories,
+    categorizedVerses,
     activeSession
   };
 }

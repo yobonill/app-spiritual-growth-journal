@@ -83,6 +83,25 @@ export interface BibleReadingSession {
   comment?: string;
 }
 
+export interface VerseCategory {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// One reference can appear in multiple categories, with different notes in each.
+export interface CategorizedVerse {
+  id: string;
+  categoryId: string;
+  reference: BibleReference;
+  description?: string;
+  refutes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type ManualPracticeType = 'fasting' | 'cilice';
 
 export interface ManualPracticeRecord {
@@ -133,7 +152,7 @@ export interface ActiveBibleSession {
 export type ActiveSession = ActivePrayerSession | ActiveBibleSession;
 
 export interface AppData {
-  schemaVersion: 2;
+  schemaVersion: 3;
   settings: AppSettings;
   prayerGroups: NamedSessionGroup[];
   readingGroups: NamedSessionGroup[];
@@ -142,7 +161,9 @@ export interface AppData {
   prayerSessions: PrayerSession[];
   bibleReadingSessions: BibleReadingSession[];
   practiceRecords: ManualPracticeRecord[];
+  verseCategories: VerseCategory[];
+  categorizedVerses: CategorizedVerse[];
   activeSession?: ActiveSession;
 }
 
-export type AppView = 'home' | 'history' | 'statistics' | 'settings';
+export type AppView = 'home' | 'history' | 'statistics' | 'settings' | 'verseCategories';

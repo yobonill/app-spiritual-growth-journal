@@ -24,6 +24,7 @@ import HomeView from './views/HomeView';
 import PrayerSessionView from './views/PrayerSessionView';
 import SettingsView from './views/SettingsView';
 import StatisticsView from './views/StatisticsView';
+import VerseCategoriesView from './views/VerseCategoriesView';
 
 export default function App() {
   const [data, setDataState] = useState<AppData | null>(null);
@@ -185,11 +186,14 @@ export default function App() {
     content = <StatisticsView data={data} />;
   } else if (view === 'settings') {
     content = <SettingsView data={data} onDataChange={setData} onImport={(imported) => { setData(imported); setView('home'); }} />;
+  } else if (view === 'verseCategories') {
+    content = <VerseCategoriesView data={data} onDataChange={setData} onBack={() => setView('home')} />;
   } else {
     content = (
       <HomeView
         data={data}
         onStartPrayer={() => setShowPrayerSetup(true)}
+        onOpenVerseCategories={() => setView('verseCategories')}
         onStartBible={() => {
           const groupId = data.readingGroups.some((group) => group.id === readingGroupId) ? readingGroupId : data.readingGroups[0].id;
           const latest = [...data.bibleReadingSessions].filter((item) => item.groupId === groupId)
@@ -208,7 +212,7 @@ export default function App() {
     <main className="app-shell">
       {storageError && <div className="storage-warning" role="alert">{storageError}</div>}
       <div className="content-shell">{content}</div>
-      {!activeSession && <AppNav activeView={view} onChange={setView} />}
+      {!activeSession && <AppNav activeView={view === 'verseCategories' ? 'home' : view} onChange={setView} />}
 
       {showPrayerSetup && (
         <Modal title="Preparar sesión de oración" onClose={() => setShowPrayerSetup(false)}>

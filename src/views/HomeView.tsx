@@ -6,11 +6,12 @@ interface HomeViewProps {
   data: AppData;
   onStartPrayer: () => void;
   onStartBible: () => void;
+  onOpenVerseCategories: () => void;
   onAddPractice: (type: ManualPracticeType) => void;
   onResumeActive: () => void;
 }
 
-export default function HomeView({ data, onStartPrayer, onStartBible, onAddPractice, onResumeActive }: HomeViewProps) {
+export default function HomeView({ data, onStartPrayer, onStartBible, onOpenVerseCategories, onAddPractice, onResumeActive }: HomeViewProps) {
   const latestBible = [...data.bibleReadingSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
   const latestPrayer = [...data.prayerSessions].sort((a, b) => b.endedAt.localeCompare(a.endedAt))[0];
 
@@ -48,6 +49,12 @@ export default function HomeView({ data, onStartPrayer, onStartBible, onAddPract
           </span>
         </button>
       </section>
+
+      <button className="verse-library-access" type="button" onClick={onOpenVerseCategories}>
+        <span className="verse-library-icon" aria-hidden="true">📚</span>
+        <span><strong>Versículos por categoría</strong><small>Consulta y organiza tus referencias bíblicas por tema.</small></span>
+        <span className="verse-library-arrow" aria-hidden="true">›</span>
+      </button>
 
       <section className="manual-actions" aria-label="Registros manuales">
         <button className="manual-action fasting" type="button" onClick={() => onAddPractice('fasting')}>
