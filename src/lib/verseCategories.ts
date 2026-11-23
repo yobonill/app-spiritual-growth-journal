@@ -1,4 +1,5 @@
-import { compareReferences, formatBibleReference } from '../data/bibleBooks';
+import { compareReferences } from '../data/bibleBooks';
+import { formatVerseRange, parseReferenceQuery, rangeContains, verseRange } from './verseRanges';
 import type { AppData, CategorizedVerse, VerseCategory } from '../types';
 
 export type VerseSearchField = 'categoryName' | 'categoryDescription' | 'verseDescription' | 'refutes' | 'verseReference';
@@ -19,11 +20,12 @@ export interface VerseCategoryResult {
 }
 
 export function normalizeVerseSearch(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').replace(/\s+/g, ' ').trim();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').replace(/[–—−]/g, '-').replace(/\s+/g, ' ').trim();
 }
 
 export function findVerseCategories(data: AppData, text: string, filters: VerseSearchFilters): VerseCategoryResult[] {
   const query = normalizeVerseSearch(text);
+  const referenceQuery = parseReferenceQuery(text);
   if (query && !Object.values(filters).some(Boolean)) return [];
 
   const groupedVerses = new Map<string, CategorizedVerse[]>();
@@ -45,7 +47,7 @@ export function findVerseCategories(data: AppData, text: string, filters: VerseS
       const verses = categoryMatches ? allVerses : allVerses.filter((verse) =>
         (filters.verseDescription && normalizeVerseSearch(verse.description ?? '').includes(query)) ||
         (filters.refutes && normalizeVerseSearch(verse.refutes ?? '').includes(query)) ||
-        (filters.verseReference && normalizeVerseSearch(formatBibleReference(verse.reference)).includes(query))
+        (filters.verseReference && (normalizeVerseSearch(formatVerseRange(verseRange(verse))).includes(query) || (referenceQuery !== null && rangeContains(verseRange(verse), referenceQuery))))
       );
       return categoryMatches || verses.length > 0
         ? [{ category, verses, totalVerses: allVerses.length }]

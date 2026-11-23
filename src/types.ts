@@ -96,6 +96,8 @@ export interface CategorizedVerse {
   id: string;
   categoryId: string;
   reference: BibleReference;
+  /** Inclusive end; absent on records saved before range support. */
+  endReference?: BibleReference;
   description?: string;
   refutes?: string;
   createdAt: string;

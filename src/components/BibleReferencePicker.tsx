@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { BIBLE_BOOKS, createReference, getBibleBook, getChapterCount, getVerseCount } from '../data/bibleBooks';
 import type { BibleReference } from '../types';
 
@@ -10,6 +10,7 @@ interface BibleReferencePickerProps {
 
 export default function BibleReferencePicker({ value, onChange, label }: BibleReferencePickerProps) {
   const selectedBook = getBibleBook(value.bookId);
+  const bookOptionsId = useId();
   const [bookQuery, setBookQuery] = useState(selectedBook.spanishName);
   const chapterCount = useMemo(() => getChapterCount(value.bookId), [value.bookId]);
   const verseCount = useMemo(() => getVerseCount(value.bookId, value.chapter), [value.bookId, value.chapter]);
@@ -30,7 +31,7 @@ export default function BibleReferencePicker({ value, onChange, label }: BibleRe
       <label>
         Libro
         <input
-          list="bible-book-options"
+          list={bookOptionsId}
           value={bookQuery}
           onChange={(event) => {
             const next = event.target.value;
@@ -44,7 +45,7 @@ export default function BibleReferencePicker({ value, onChange, label }: BibleRe
           placeholder="Busca un libro"
           autoComplete="off"
         />
-        <datalist id="bible-book-options">
+        <datalist id={bookOptionsId}>
           {BIBLE_BOOKS.map((book) => <option key={book.id} value={book.spanishName} />)}
         </datalist>
       </label>

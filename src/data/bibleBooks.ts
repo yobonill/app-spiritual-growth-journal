@@ -89,6 +89,7 @@ export function formatBibleReference(reference: BibleReference): string {
 }
 
 export function formatBibleRange(start: BibleReference, end: BibleReference): string {
+  if (compareReferences(start, end) === 0) return formatBibleReference(start);
   if (start.bookId === end.bookId && start.chapter === end.chapter) {
     return `${start.bookName} ${start.chapter}:${start.verse}–${end.verse}`;
   }

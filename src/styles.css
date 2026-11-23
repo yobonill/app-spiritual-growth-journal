@@ -376,3 +376,35 @@ label { display: grid; gap: 7px; color: #454b45; font-size: .92rem; font-weight:
   .verse-mode-switch button { font-size: .82rem; }
   .verse-library-access { padding: 14px; }
 }
+
+/* Sharing and merging categorized Bible references */
+.verse-transfer-open { justify-self: start; margin-top: 8px; }
+.verse-range-help { margin: -4px 0 0; line-height: 1.45; font-size: .81rem; }
+.verse-transfer { gap: 14px; }
+.verse-transfer > .muted { margin: 0; line-height: 1.45; }
+.verse-transfer-file-input { display: none; }
+.verse-transfer-select-list { display: grid; gap: 8px; max-height: 42vh; overflow-y: auto; }
+.verse-transfer-category-option { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; cursor: pointer; }
+.verse-transfer-category-option input { flex: 0 0 18px; width: 18px; height: 18px; accent-color: var(--green); }
+.verse-transfer-category-option span { display: grid; gap: 3px; }
+.verse-transfer-category-option small { font-size: .78rem; font-weight: 450; color: var(--muted); }
+.verse-transfer-overview { display: grid; gap: 4px; padding: 12px; background: #edf3e9; border: 1px solid #cad9c1; border-radius: 13px; }
+.verse-transfer-overview strong { color: var(--green-dark); }
+.verse-transfer-overview span { font-weight: 700; }
+.verse-transfer-overview small { color: var(--muted); line-height: 1.4; }
+.verse-transfer-counter { margin: 0; color: var(--muted); font-size: .8rem; font-weight: 800; }
+.verse-transfer-title { margin: 0; color: var(--green-dark); font-family: Georgia,serif; font-size: 1.25rem; overflow-wrap: anywhere; }
+.verse-transfer-comparison { display: grid; gap: 8px; }
+.verse-transfer-version { background: #faf8f1; border: 1px solid #ded8c9; border-radius: 13px; padding: 13px; display: grid; gap: 8px; }
+.verse-transfer-version.imported { background: #f2f7ed; border-color: #cbdcc5; }
+.verse-transfer-version > strong { color: var(--green-dark); overflow-wrap: anywhere; }
+.verse-transfer-version p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.verse-transfer-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.verse-transfer-choices button { white-space: normal; min-width: 0; }
+.verse-transfer-choices button:last-child:nth-child(3) { grid-column: 1 / -1; }
+.verse-transfer-custom { display: grid; gap: 12px; padding: 14px; border: 1px solid #cbdcc5; border-radius: 15px; background: #f6faf3; }
+.verse-transfer-custom .muted { margin: 0; line-height: 1.45; }
+.verse-transfer-stats { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 14px; padding: 13px; }
+.verse-transfer-stats span { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: .87rem; }
+.verse-transfer-stats b { font-size: 1.04rem; color: var(--green-dark); }
+@media (max-width: 420px) { .verse-transfer-choices { grid-template-columns: 1fr; } .verse-transfer-choices button:last-child:nth-child(3) { grid-column: auto; } }

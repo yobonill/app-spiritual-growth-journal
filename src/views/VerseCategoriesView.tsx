@@ -1,7 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import BibleReferencePicker from '../components/BibleReferencePicker';
+import VerseLibraryTransferModal from '../components/VerseLibraryTransferModal';
 import Modal from '../components/Modal';
-import { createReference, formatBibleReference } from '../data/bibleBooks';
+import { compareReferences, createReference } from '../data/bibleBooks';
+import { formatVerseRange, rangesOverlap, sameVerseRange, verseRange } from '../lib/verseRanges';
 import { createId } from '../lib/id';
 import {
   DEFAULT_VERSE_SEARCH_FILTERS,
@@ -28,6 +30,7 @@ interface VerseDraft {
   id?: string;
   categoryId: string;
   reference: BibleReference;
+  endReference: BibleReference;
   description: string;
   refutes: string;
 }
@@ -48,6 +51,7 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [verseDraft, setVerseDraft] = useState<VerseDraft | null>(null);
   const [formError, setFormError] = useState('');
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const matches = useMemo(() => findVerseCategories(data, query, filters), [data, query, filters]);
   const categories = useMemo(
@@ -109,11 +113,13 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
       id: verse.id,
       categoryId,
       reference: verse.reference,
+      endReference: verse.endReference ?? verse.reference,
       description: verse.description ?? '',
       refutes: verse.refutes ?? ''
     } : {
       categoryId,
       reference: createReference('gen', 1, 1),
+      endReference: createReference('gen', 1, 1),
       description: '',
       refutes: ''
     });
@@ -126,16 +132,23 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
       return setFormError('Esta categoría ya no existe.');
     }
     const reference = verseDraft.reference;
-    const duplicate = data.categorizedVerses.some((verse) =>
-      verse.id !== verseDraft.id && verse.categoryId === verseDraft.categoryId &&
-      verse.reference.bookId === reference.bookId &&
-      verse.reference.chapter === reference.chapter && verse.reference.verse === reference.verse
+    const endReference = verseDraft.endReference;
+    if (compareReferences(reference, endReference) > 0) {
+      return setFormError('«Hasta» debe ser igual o posterior a «Desde».');
+    }
+    const existingRanges = data.categorizedVerses.filter((verse) =>
+      verse.id !== verseDraft.id && verse.categoryId === verseDraft.categoryId
     );
-    if (duplicate) return setFormError('Ese versículo ya está asignado a esta categoría.');
+    if (existingRanges.some((verse) => sameVerseRange(verseRange(verse), { start: reference, end: endReference }))) {
+      return setFormError('Este mismo rango bíblico ya está asignado a la categoría.');
+    }
+    const overlapping = existingRanges.find((verse) => rangesOverlap(verseRange(verse), { start: reference, end: endReference }));
+    if (overlapping && !window.confirm(`Este rango se superpone con ${formatVerseRange(verseRange(overlapping))}. ¿Guardar ambas referencias por separado?`)) return;
 
     const now = new Date().toISOString();
     const values = {
       reference,
+      endReference,
       description: verseDraft.description.trim() || undefined,
       refutes: verseDraft.refutes.trim() || undefined,
       updatedAt: now
@@ -159,7 +172,7 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
   };
 
   const deleteVerse = (verse: CategorizedVerse) => {
-    if (!window.confirm(`¿Quitar ${formatBibleReference(verse.reference)} de esta categoría?`)) return;
+    if (!window.confirm(`¿Quitar ${formatVerseRange(verseRange(verse))} de esta categoría?`)) return;
     onDataChange({
       ...data,
       categorizedVerses: data.categorizedVerses.filter((item) => item.id !== verse.id)
@@ -179,6 +192,7 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
         <p className="eyebrow">Tu biblioteca personal</p>
         <h1>Versículos por categoría</h1>
         <p>Organiza referencias de la Biblia por tema y registra lo que enseñan o refutan.</p>
+        <button type="button" className="secondary-button small verse-transfer-open" onClick={() => setTransferOpen(true)}>📤 Exportar / 📥 Importar categorías</button>
       </header>
 
       <div className="verse-mode-switch" role="group" aria-label="Opciones de la biblioteca">
@@ -228,7 +242,7 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
                 ))}
               </div>
             </fieldset>
-            <p className="muted verse-search-help">«Versículo» busca la referencia (por ejemplo, Juan 1:1), no el texto bíblico.</p>
+            <p className="muted verse-search-help">«Versículo» busca la referencia, incluso dentro de rangos registrados (por ejemplo, 1 Crónicas 29:7 encuentra 29:5–9), no el texto bíblico.</p>
           </section>
 
           <div className="verse-panel-heading">
@@ -266,7 +280,7 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
                           <div className="verse-reference-list">
                             {verses.map((verse) => (
                               <article className="verse-reference-card" key={verse.id}>
-                                <h3>📖 {formatBibleReference(verse.reference)}</h3>
+                                <h3>📖 {formatVerseRange(verseRange(verse))}</h3>
                                 {verse.description && <p><strong>Descripción:</strong> {verse.description}</p>}
                                 {verse.refutes && <p><strong>Qué refuta:</strong> {verse.refutes}</p>}
                                 {!verse.description && !verse.refutes && <p className="muted">Sin descripción ni refutación.</p>}
@@ -287,6 +301,8 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
           )}
         </>
       )}
+
+      {transferOpen && <VerseLibraryTransferModal data={data} onDataChange={onDataChange} onClose={() => setTransferOpen(false)} />}
 
       {categoryDraft && (
         <Modal title={categoryDraft.id ? 'Editar categoría' : 'Nueva categoría'} onClose={() => setCategoryDraft(null)}>
@@ -310,7 +326,20 @@ export default function VerseCategoriesView({ data, onDataChange, onBack }: Vers
         <Modal title={verseDraft.id ? 'Editar versículo' : 'Agregar versículo'} onClose={() => setVerseDraft(null)}>
           <form className="modal-body view-stack" onSubmit={saveVerse}>
             <p className="muted verse-editor-category">Categoría: <strong>{data.verseCategories.find((category) => category.id === verseDraft.categoryId)?.name}</strong></p>
-            <BibleReferencePicker label="Selecciona el versículo" value={verseDraft.reference} onChange={(reference) => setVerseDraft((current) => current ? { ...current, reference } : current)} />
+            <BibleReferencePicker label="Desde" value={verseDraft.reference} onChange={(reference) => setVerseDraft((current) => {
+              if (!current) return current;
+              const previousStart = current.reference;
+              const endFollowsStart = compareReferences(previousStart, current.endReference) === 0;
+              // Until the user deliberately chooses another book, follow the
+              // starting book when it changes, keeping the selected end verse.
+              const endReference = endFollowsStart ? reference
+                : previousStart.bookId === current.endReference.bookId && reference.bookId !== previousStart.bookId
+                  ? createReference(reference.bookId, current.endReference.chapter, current.endReference.verse)
+                  : current.endReference;
+              return { ...current, reference, endReference };
+            })} />
+            <BibleReferencePicker label="Hasta" value={verseDraft.endReference} onChange={(endReference) => setVerseDraft((current) => current ? { ...current, endReference } : current)} />
+            <p className="muted verse-range-help">«Hasta» comienza con la misma referencia que «Desde», pero puedes cambiar el libro, capítulo o versículo. Para un versículo individual, deja ambos iguales.</p>
             <label>Descripción <span className="optional">(opcional)</span>
               <textarea rows={3} value={verseDraft.description} onChange={(event) => setVerseDraft({ ...verseDraft, description: event.target.value })} placeholder="¿De qué trata este versículo?" />
             </label>
